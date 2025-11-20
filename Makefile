@@ -296,3 +296,52 @@ binary: clean-binary tarball
 
 	# Generate sha256sum
 	cd .build/binary && sha256sum $(PKG_NAME)_$(VERSION)_$(shell uname -m).bin.tar.xz | cut -d' ' -f1 > $(PKG_NAME)_$(VERSION)_$(shell uname -m).bin.tar.xz.sha256
+
+clean-appimage:
+	rm -rf .build/appimage
+
+appimage: clean-appimage tarball
+	mkdir -p .build/appimage
+
+	cp .build/tarball/${PKG}.tar.gz .build/appimage
+	tar -xzf .build/appimage/${PKG}.tar.gz -C .build/appimage
+
+	# Build the application
+	make -C .build/appimage/${PKG} build OFFLINE=$(OFFLINE) BUILD_FE=0 INCLUDE_GUI=$(INCLUDE_GUI)
+
+	# Install into AppDir
+	make -C .build/appimage/${PKG} install DESTDIR=$(PWD)/.build/appimage/AppDir
+
+	# Download linuxdeploy
+	cd .build/appimage && \
+	wget -c https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-$(shell uname -m).AppImage && \
+	chmod +x linuxdeploy-$(shell uname -m).AppImage
+
+	# Download GTK plugin for proper theme support
+	cd .build/appimage && \
+	wget -c https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh && \
+	chmod +x linuxdeploy-plugin-gtk.sh
+
+	# Create AppImage
+	cd .build/appimage && \
+	DEPLOY_GTK_VERSION=3 VERSION=$(VERSION) ./linuxdeploy-$(shell uname -m).AppImage \
+		--appdir AppDir \
+		--plugin gtk \
+		--executable AppDir/usr/bin/gpclient \
+		--executable AppDir/usr/bin/gpauth \
+		--executable AppDir/usr/bin/gpservice \
+		--executable AppDir/usr/bin/gpgui-helper \
+		--desktop-file AppDir/usr/share/applications/gpgui.desktop \
+		--icon-file AppDir/usr/share/icons/hicolor/scalable/apps/gpgui.svg \
+		--icon-file AppDir/usr/share/icons/hicolor/32x32/apps/gpgui.png \
+		--icon-file AppDir/usr/share/icons/hicolor/128x128/apps/gpgui.png \
+		--output appimage
+
+	# Find and rename the generated AppImage
+	cd .build/appimage && \
+	GENERATED=$$(find . -maxdepth 1 -name "*.AppImage" -not -name "linuxdeploy*.AppImage" | head -n 1) && \
+	mv $$GENERATED $(PKG_NAME)-$(VERSION)-$(shell uname -m).AppImage
+
+	# Generate sha256sum
+	cd .build/appimage && \
+	sha256sum $(PKG_NAME)-$(VERSION)-$(shell uname -m).AppImage | cut -d' ' -f1 > $(PKG_NAME)-$(VERSION)-$(shell uname -m).AppImage.sha256

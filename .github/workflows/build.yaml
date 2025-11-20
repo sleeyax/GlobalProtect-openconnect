@@ -134,7 +134,7 @@ jobs:
     strategy:
       matrix:
         os: ${{fromJson(needs.setup-matrix.outputs.matrix)}}
-        package: [deb, rpm, pkg, binary, ubuntu-rolling]
+        package: [deb, rpm, pkg, binary, ubuntu-rolling, appimage]
     runs-on: ${{ matrix.os.runner }}
     name: build-gp (${{ matrix.package }}, ${{ matrix.os.arch }})
     steps:

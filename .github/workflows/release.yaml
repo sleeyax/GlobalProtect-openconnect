@@ -35,6 +35,11 @@ on:
         description: 'Build binary package'
         required: true
         default: true
+      release-appimage:
+        type: boolean
+        description: 'Build AppImage package'
+        required: true
+        default: true
       gh-release:
         type: boolean
         description: 'Update GitHub release'
